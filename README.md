@@ -11,8 +11,8 @@ Or with the Vercel CLI: `vercel dev`.
 
 ## Deploy on Vercel
 1. Push this folder to a GitHub repo and import it in Vercel (framework preset: **Other**, no build command).
-2. Project Settings → Environment Variables: add `GROQ_API_KEY` (required) and optionally `GROQ_MODEL` (default `llama-3.3-70b-versatile`).
+2. Project Settings → Environment Variables: add `GROQ_API_KEY` (required) and optionally `GROQ_MODEL` (default `openai/gpt-oss-120b`).
 3. Redeploy so the variables take effect.
 
 ## Limits (in `api/chat.js`)
-12 recent messages, 2000 chars per message, 12000 chars total, 1024 output tokens, 25 s upstream timeout.
+12 recent messages, 2000 chars per message, 12000 chars total, 2048 output tokens, 25 s upstream timeout.

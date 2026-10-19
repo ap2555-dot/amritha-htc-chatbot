@@ -2,12 +2,12 @@
 // Keeps GROQ_API_KEY on the server and forwards a bounded chat history to Groq.
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 const MAX_MESSAGES = 12; // recent messages kept as context
 const MAX_MESSAGE_CHARS = 2000; // per message
 const MAX_TOTAL_CHARS = 12000; // across the whole history
-const MAX_OUTPUT_TOKENS = 1024;
+const MAX_OUTPUT_TOKENS = 2048; // reasoning models spend part of this on thinking
 const TIMEOUT_MS = 25000;
 
 const SYSTEM_PROMPT =
@@ -73,6 +73,16 @@ module.exports = async function handler(req, res) {
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
+    const model = process.env.GROQ_MODEL || DEFAULT_MODEL;
+    const payload = {
+      model,
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+      temperature: 0.7,
+      max_tokens: MAX_OUTPUT_TOKENS,
+    };
+    // gpt-oss models reason before answering; keep it short so replies stay fast.
+    if (model.startsWith('openai/gpt-oss')) payload.reasoning_effort = 'low';
+
     const upstream = await fetch(GROQ_URL, {
       method: 'POST',
       signal: controller.signal,
@@ -80,12 +90,7 @@ module.exports = async function handler(req, res) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: process.env.GROQ_MODEL || DEFAULT_MODEL,
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-        temperature: 0.7,
-        max_tokens: MAX_OUTPUT_TOKENS,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await upstream.json().catch(() => null);
